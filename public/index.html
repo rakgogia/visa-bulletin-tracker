@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EB3 India Visa Bulletin Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EB3 India Visa Bulletin Tracker</h1>
+            <p class="subtitle">Dates for Filing of Employment-Based Visa Applications</p>
+        </header>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Fetching latest visa bulletin data...</p>
+        </div>
+        <div id="error" class="error" style="display: none;">
+            <p>Failed to fetch visa bulletin data. Please try again later.</p>
+            <p id="errorMessage" class="error-details"></p>
+        </div>
+        <div id="content" style="display: none;">
+            <div class="bulletin-cards">
+                <div class="card current-card">
+                    <div class="card-header">
+                        <h2>Current Bulletin</h2>
+                        <span class="badge badge-current">Current</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="month-label" id="currentMonth">-</div>
+                        <div class="date-display" id="currentDate">-</div>
+                        <a href="#" id="currentLink" target="_blank" class="bulletin-link">View Official Bulletin →</a>
+                    </div>
+                </div>
+                <div class="card upcoming-card">
+                    <div class="card-header">
+                        <h2>Upcoming Bulletin</h2>
+                        <span class="badge badge-upcoming">Upcoming</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="month-label" id="upcomingMonth">-</div>
+                        <div class="date-display" id="upcomingDate">-</div>
+                        <a href="#" id="upcomingLink" target="_blank" class="bulletin-link">View Official Bulletin →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="movement-section">
+                <div class="card movement-card" id="movementCard">
+                    <div class="card-header">
+                        <h2>Movement Analysis</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="movement-indicator" id="movementIndicator">
+                            <span class="movement-arrow" id="movementArrow">→</span>
+                            <span class="movement-text" id="movementText">No movement</span>
+                        </div>
+                        <div class="movement-details" id="movementDetails">Calculating movement...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="info-section">
+                <div class="info-box">
+                    <h3>About Priority Dates</h3>
+                    <p>The priority date shown is the cutoff date for filing employment-based visa applications. If your priority date is earlier than the displayed date, you may be eligible to file your application.</p>
+                </div>
+                <div class="info-box">
+                    <h3>Data Source</h3>
+                    <p>All data is fetched directly from the official <a href="https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin.html" target="_blank">U.S. Department of State Visa Bulletin</a>.</p>
+                </div>
+            </div>
+            <div class="last-updated">Last updated: <span id="lastUpdated">-</span></div>
+        </div>
+        <button id="refreshBtn" class="refresh-btn" onclick="loadData()">
+            <span class="refresh-icon">↻</span> Refresh Data
+        </button>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
