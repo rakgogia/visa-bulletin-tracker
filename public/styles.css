@@ -490,6 +490,12 @@ header h1 {
     gap: 8px;
   }
 
+  .commit-message {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
   .commit-meta {
     justify-content: center;
   }
