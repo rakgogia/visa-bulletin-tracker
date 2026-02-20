@@ -219,9 +219,13 @@ app.get('/api/commit-info', async (req, res) => {
 
 // SPA catch-all — serve React index.html for non-API routes
 const reactIndex = path.join(buildDir, 'index.html');
-if (fs.existsSync(reactIndex)) {
-  app.get('*', (_req, res) => res.sendFile(reactIndex));
-}
+app.get('*', (_req, res) => {
+  if (fs.existsSync(reactIndex)) {
+    res.sendFile(reactIndex);
+  } else {
+    res.status(404).send('Build not found. Run "npm run build:client" first.');
+  }
+});
 
 if (require.main === module) {
   app.listen(PORT, () => console.log(`Visa Bulletin Tracker running at http://localhost:${PORT}`));
