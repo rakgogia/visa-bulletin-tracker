@@ -30,89 +30,100 @@ function getCurrentAndUpcomingMonths() {
 async function fetchVisaBulletin(month, year) {
   try {
     const url = `${VISA_BULLETIN_BASE_URL}/${year}/visa-bulletin-for-${month}-${year}.html`;
-    console.log(`Fetching: ${url}`);
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const $ = cheerio.load(await response.text());
-    const categories = {
-      '1st': { filingDate: null, finalActionDate: null },
-      '2nd': { filingDate: null, finalActionDate: null },
-      '3rd': { filingDate: null, finalActionDate: null },
-      '5th': { filingDate: null, finalActionDate: null }
-    };
 
-    $('table').each((i, table) => {
+    const CATEGORY_KEYS = ['1st', '2nd', '3rd', '5th'];
+    const categories = Object.fromEntries(
+      CATEGORY_KEYS.map(key => [key, { filingDate: null, finalActionDate: null }])
+    );
+
+    $('table').each((_i, table) => {
       const tableText = $(table).text().toUpperCase();
-      if (tableText.includes('INDIA') && (tableText.includes('1ST') || tableText.includes('2ND') || tableText.includes('3RD') || tableText.includes('5TH'))) {
-        let indiaColumnIndex = -1;
-        const headingText = $(table).prevAll('p, h1, h2, h3, h4, h5, h6').first().text().toUpperCase();
-        const isFilingDatesTable = headingText.includes('FILING');
-        const isFinalActionTable = headingText.includes('FINAL ACTION') || headingText.includes('FINAL DATE');
-        const rows = $(table).find('tr');
-        if (rows.length > 0) {
-          $(rows[0]).find('td, th').each((cellIndex, cell) => {
-            const cellText = $(cell).text().trim().toUpperCase();
-            if (cellText.includes('INDIA') && !cellText.includes('MAINLAND')) {
-              indiaColumnIndex = cellIndex;
-              console.log(`Table ${i}: Found INDIA column at index ${indiaColumnIndex}, isFilingDatesTable: ${isFilingDatesTable}, isFinalActionTable: ${isFinalActionTable}`);
-            }
-          });
-        }
-        if (indiaColumnIndex !== -1) {
-          rows.each((rowIndex, row) => {
-            const cells = $(row).find('td, th');
-            const rowLabel = $(cells[0]).text().trim();
-            // Determine the category key from the row label
-            let categoryKey = null;
-            if (rowLabel === '1st') categoryKey = '1st';
-            else if (rowLabel === '2nd') categoryKey = '2nd';
-            else if (rowLabel === '3rd') categoryKey = '3rd';
-            else if (rowLabel.startsWith('5th') && rowLabel.includes('Unreserved')) categoryKey = '5th';
+      const hasRelevantData = tableText.includes('INDIA') &&
+        CATEGORY_KEYS.some(key => tableText.includes(key.toUpperCase()));
+      if (!hasRelevantData) return;
 
-            if (categoryKey && cells.length > indiaColumnIndex) {
-              const dateValue = $(cells[indiaColumnIndex]).text().trim();
-              console.log(`Table ${i}: Found ${categoryKey} row (label: "${rowLabel.substring(0, 30)}") with India date: ${dateValue}`);
-              if (isFilingDatesTable) {
-                categories[categoryKey].filingDate = dateValue;
-                console.log(`Using as ${categoryKey} Filing Date: ${dateValue}`);
-              } else if (isFinalActionTable || !categories[categoryKey].finalActionDate) {
-                categories[categoryKey].finalActionDate = dateValue;
-                console.log(`Using as ${categoryKey} Final Action Date: ${dateValue}`);
-              }
-            }
-          });
-        }
+      const headingText = $(table).prevAll('p, h1, h2, h3, h4, h5, h6').first().text().toUpperCase();
+      const isFilingDatesTable = headingText.includes('FILING');
+      const isFinalActionTable = headingText.includes('FINAL ACTION') || headingText.includes('FINAL DATE');
+      const rows = $(table).find('tr');
+
+      let indiaColumnIndex = -1;
+      if (rows.length > 0) {
+        $(rows[0]).find('td, th').each((cellIndex, cell) => {
+          const cellText = $(cell).text().trim().toUpperCase();
+          if (cellText.includes('INDIA') && !cellText.includes('MAINLAND')) {
+            indiaColumnIndex = cellIndex;
+          }
+        });
       }
+      if (indiaColumnIndex === -1) return;
+
+      rows.each((_rowIndex, row) => {
+        const cells = $(row).find('td, th');
+        const rowLabel = $(cells[0]).text().trim();
+
+        let categoryKey = null;
+        if (rowLabel === '1st') categoryKey = '1st';
+        else if (rowLabel === '2nd') categoryKey = '2nd';
+        else if (rowLabel === '3rd') categoryKey = '3rd';
+        else if (rowLabel.startsWith('5th') && rowLabel.includes('Unreserved')) categoryKey = '5th';
+
+        if (categoryKey && cells.length > indiaColumnIndex) {
+          const dateValue = $(cells[indiaColumnIndex]).text().trim();
+          if (isFilingDatesTable) {
+            categories[categoryKey].filingDate = dateValue;
+          } else if (isFinalActionTable || !categories[categoryKey].finalActionDate) {
+            categories[categoryKey].finalActionDate = dateValue;
+          }
+        }
+      });
     });
 
+    const fallback = 'Not Available';
     return {
       month: `${capitalize(month)} ${year}`,
-      date: categories['3rd'].filingDate || 'Not Available',
-      finalActionDate: categories['3rd'].finalActionDate || 'Not Available',
-      eb2FilingDate: categories['2nd'].filingDate || 'Not Available',
-      eb2FinalActionDate: categories['2nd'].finalActionDate || 'Not Available',
-      eb1FilingDate: categories['1st'].filingDate || 'Not Available',
-      eb1FinalActionDate: categories['1st'].finalActionDate || 'Not Available',
-      eb5FilingDate: categories['5th'].filingDate || 'Not Available',
-      eb5FinalActionDate: categories['5th'].finalActionDate || 'Not Available',
+      date: categories['3rd'].filingDate || fallback,
+      finalActionDate: categories['3rd'].finalActionDate || fallback,
+      eb1FilingDate: categories['1st'].filingDate || fallback,
+      eb1FinalActionDate: categories['1st'].finalActionDate || fallback,
+      eb2FilingDate: categories['2nd'].filingDate || fallback,
+      eb2FinalActionDate: categories['2nd'].finalActionDate || fallback,
+      eb5FilingDate: categories['5th'].filingDate || fallback,
+      eb5FinalActionDate: categories['5th'].finalActionDate || fallback,
       url
     };
   } catch (error) {
     console.error(`Error fetching bulletin for ${month} ${year}:`, error.message);
-    return { month: `${capitalize(month)} ${year}`, date: 'Error fetching data', finalActionDate: 'Error fetching data', url: null, error: error.message };
+    return {
+      month: `${capitalize(month)} ${year}`,
+      date: 'Error fetching data',
+      finalActionDate: 'Error fetching data',
+      url: null,
+      error: error.message
+    };
   }
 }
 
-const MONTH_MAP = { 'JAN': 0, 'FEB': 1, 'MAR': 2, 'APR': 3, 'MAY': 4, 'JUN': 5, 'JUL': 6, 'AUG': 7, 'SEP': 8, 'OCT': 9, 'NOV': 10, 'DEC': 11 };
+const MONTH_MAP = {
+  JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5,
+  JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11
+};
+
+const NON_DATE_VALUES = new Set(['Not Available', 'Error fetching data', 'C', 'U']);
 
 function parseDate(dateStr) {
-  if (!dateStr || ['Not Available', 'Error fetching data', 'C', 'U'].includes(dateStr)) return null;
-  const match = dateStr.match(/(\d{2})([A-Z]{3})(\d{2,4})/);
+  if (!dateStr || NON_DATE_VALUES.has(dateStr)) return null;
+  const match = dateStr.match(/^(\d{2})([A-Z]{3})(\d{2,4})$/);
   if (!match) return null;
   const [, day, monthStr, yearStr] = match;
-  const year = yearStr.length === 2 ? (parseInt(yearStr) > 50 ? '19' + yearStr : '20' + yearStr) : yearStr;
+  const year = yearStr.length === 2
+    ? (parseInt(yearStr) > 50 ? 1900 : 2000) + parseInt(yearStr)
+    : parseInt(yearStr);
   const month = MONTH_MAP[monthStr];
-  return month !== undefined ? new Date(parseInt(year), month, parseInt(day)) : null;
+  return month !== undefined ? new Date(year, month, parseInt(day)) : null;
 }
 
 function calculateMovement(currentDate, upcomingDate) {
@@ -128,26 +139,26 @@ function calculateMovement(currentDate, upcomingDate) {
 app.get('/api/visa-bulletin', async (req, res) => {
   try {
     const { current, upcoming } = getCurrentAndUpcomingMonths();
-    console.log('Fetching bulletins...');
-    const [currentBulletin, upcomingBulletin] = await Promise.all([
+    const [cur, upc] = await Promise.all([
       fetchVisaBulletin(current.month, current.year),
       fetchVisaBulletin(upcoming.month, upcoming.year)
     ]);
+
     res.json({
-      current: currentBulletin,
-      upcoming: upcomingBulletin,
-      movement: calculateMovement(currentBulletin.date, upcomingBulletin.date),
-      finalActionMovement: calculateMovement(currentBulletin.finalActionDate, upcomingBulletin.finalActionDate),
-      eb2Movement: calculateMovement(currentBulletin.eb2FilingDate, upcomingBulletin.eb2FilingDate),
-      eb2FinalActionMovement: calculateMovement(currentBulletin.eb2FinalActionDate, upcomingBulletin.eb2FinalActionDate),
-      eb1Movement: calculateMovement(currentBulletin.eb1FilingDate, upcomingBulletin.eb1FilingDate),
-      eb1FinalActionMovement: calculateMovement(currentBulletin.eb1FinalActionDate, upcomingBulletin.eb1FinalActionDate),
-      eb5Movement: calculateMovement(currentBulletin.eb5FilingDate, upcomingBulletin.eb5FilingDate),
-      eb5FinalActionMovement: calculateMovement(currentBulletin.eb5FinalActionDate, upcomingBulletin.eb5FinalActionDate),
+      current: cur,
+      upcoming: upc,
+      movement: calculateMovement(cur.date, upc.date),
+      finalActionMovement: calculateMovement(cur.finalActionDate, upc.finalActionDate),
+      eb1Movement: calculateMovement(cur.eb1FilingDate, upc.eb1FilingDate),
+      eb1FinalActionMovement: calculateMovement(cur.eb1FinalActionDate, upc.eb1FinalActionDate),
+      eb2Movement: calculateMovement(cur.eb2FilingDate, upc.eb2FilingDate),
+      eb2FinalActionMovement: calculateMovement(cur.eb2FinalActionDate, upc.eb2FinalActionDate),
+      eb5Movement: calculateMovement(cur.eb5FilingDate, upc.eb5FilingDate),
+      eb5FinalActionMovement: calculateMovement(cur.eb5FinalActionDate, upc.eb5FinalActionDate),
       lastUpdated: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('API error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
