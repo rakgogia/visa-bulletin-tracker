@@ -163,4 +163,25 @@ app.get('/api/visa-bulletin', async (req, res) => {
   }
 });
 
+app.get('/api/commit-info', async (req, res) => {
+  try {
+    const response = await fetch('https://api.github.com/repos/rakgogia/visa-bulletin-tracker/commits?per_page=1', {
+      headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'visa-bulletin-tracker' }
+    });
+    if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
+    const [commit] = await response.json();
+    res.json({
+      sha: commit.sha.substring(0, 7),
+      fullSha: commit.sha,
+      message: commit.commit.message.split('\n')[0],
+      author: commit.commit.author.name,
+      date: commit.commit.author.date,
+      url: commit.html_url
+    });
+  } catch (error) {
+    console.error('Error fetching commit info:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`Visa Bulletin Tracker running at http://localhost:${PORT}`));

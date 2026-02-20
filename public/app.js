@@ -134,4 +134,38 @@ function updateLastUpdated(timestamp) {
     });
 }
 
-window.addEventListener('DOMContentLoaded', loadData);
+async function loadCommitInfo() {
+    try {
+        const response = await fetch('/api/commit-info');
+        if (!response.ok) throw new Error('Failed to fetch commit info');
+        const commit = await response.json();
+        document.getElementById('commitMessage').textContent = commit.message;
+        document.getElementById('commitSha').textContent = commit.sha;
+        document.getElementById('commitAuthor').textContent = commit.author;
+        document.getElementById('commitDate').textContent = formatRelativeTime(new Date(commit.date));
+        const commitLink = document.getElementById('commitLink');
+        commitLink.href = commit.url;
+        document.getElementById('commitInfo').style.display = 'flex';
+    } catch (err) {
+        console.error('Error loading commit info:', err);
+    }
+}
+
+function formatRelativeTime(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays > 30) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffMins > 0) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    return 'just now';
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    loadCommitInfo();
+});

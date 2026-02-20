@@ -360,6 +360,90 @@ header h1 {
   transform: rotate(180deg);
 }
 
+/* Commit Info */
+.commit-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 30px auto;
+  padding: 16px 22px;
+  max-width: 700px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  color: white;
+}
+
+.commit-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.commit-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.commit-header {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.commit-message {
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.commit-meta {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.commit-sha {
+  font-family: 'Courier New', monospace;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.commit-separator {
+  opacity: 0.5;
+}
+
+.commit-link-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: bold;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.commit-link-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   header h1 {
@@ -398,5 +482,15 @@ header h1 {
   .tab-btn {
     padding: 8px 20px;
     font-size: 0.9rem;
+  }
+
+  .commit-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .commit-meta {
+    justify-content: center;
   }
 }
