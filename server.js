@@ -34,32 +34,50 @@ async function fetchVisaBulletin(month, year) {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const $ = cheerio.load(await response.text());
-    let eb3IndiaDate = null;
+    const categories = {
+      '1st': { filingDate: null, finalActionDate: null },
+      '2nd': { filingDate: null, finalActionDate: null },
+      '3rd': { filingDate: null, finalActionDate: null },
+      '5th': { filingDate: null, finalActionDate: null }
+    };
 
     $('table').each((i, table) => {
       const tableText = $(table).text().toUpperCase();
-      if (tableText.includes('INDIA') && tableText.includes('3RD')) {
+      if (tableText.includes('INDIA') && (tableText.includes('1ST') || tableText.includes('2ND') || tableText.includes('3RD') || tableText.includes('5TH'))) {
         let indiaColumnIndex = -1;
-        const isFilingDatesTable = $(table).prevAll('p, h1, h2, h3, h4, h5, h6').first().text().toUpperCase().includes('FILING');
+        const headingText = $(table).prevAll('p, h1, h2, h3, h4, h5, h6').first().text().toUpperCase();
+        const isFilingDatesTable = headingText.includes('FILING');
+        const isFinalActionTable = headingText.includes('FINAL ACTION') || headingText.includes('FINAL DATE');
         const rows = $(table).find('tr');
         if (rows.length > 0) {
           $(rows[0]).find('td, th').each((cellIndex, cell) => {
             const cellText = $(cell).text().trim().toUpperCase();
             if (cellText.includes('INDIA') && !cellText.includes('MAINLAND')) {
               indiaColumnIndex = cellIndex;
-              console.log(`Table ${i}: Found INDIA column at index ${indiaColumnIndex}, isFilingDatesTable: ${isFilingDatesTable}`);
+              console.log(`Table ${i}: Found INDIA column at index ${indiaColumnIndex}, isFilingDatesTable: ${isFilingDatesTable}, isFinalActionTable: ${isFinalActionTable}`);
             }
           });
         }
         if (indiaColumnIndex !== -1) {
           rows.each((rowIndex, row) => {
             const cells = $(row).find('td, th');
-            if (cells.length > indiaColumnIndex && $(cells[0]).text().trim() === '3rd') {
+            const rowLabel = $(cells[0]).text().trim();
+            // Determine the category key from the row label
+            let categoryKey = null;
+            if (rowLabel === '1st') categoryKey = '1st';
+            else if (rowLabel === '2nd') categoryKey = '2nd';
+            else if (rowLabel === '3rd') categoryKey = '3rd';
+            else if (rowLabel.startsWith('5th') && rowLabel.includes('Unreserved')) categoryKey = '5th';
+
+            if (categoryKey && cells.length > indiaColumnIndex) {
               const dateValue = $(cells[indiaColumnIndex]).text().trim();
-              console.log(`Table ${i}: Found 3rd row with India date: ${dateValue}`);
-              if (isFilingDatesTable || !eb3IndiaDate) {
-                eb3IndiaDate = dateValue;
-                console.log(`Using this date: ${eb3IndiaDate}`);
+              console.log(`Table ${i}: Found ${categoryKey} row (label: "${rowLabel.substring(0, 30)}") with India date: ${dateValue}`);
+              if (isFilingDatesTable) {
+                categories[categoryKey].filingDate = dateValue;
+                console.log(`Using as ${categoryKey} Filing Date: ${dateValue}`);
+              } else if (isFinalActionTable || !categories[categoryKey].finalActionDate) {
+                categories[categoryKey].finalActionDate = dateValue;
+                console.log(`Using as ${categoryKey} Final Action Date: ${dateValue}`);
               }
             }
           });
@@ -67,10 +85,21 @@ async function fetchVisaBulletin(month, year) {
       }
     });
 
-    return { month: `${capitalize(month)} ${year}`, date: eb3IndiaDate || 'Not Available', url };
+    return {
+      month: `${capitalize(month)} ${year}`,
+      date: categories['3rd'].filingDate || 'Not Available',
+      finalActionDate: categories['3rd'].finalActionDate || 'Not Available',
+      eb2FilingDate: categories['2nd'].filingDate || 'Not Available',
+      eb2FinalActionDate: categories['2nd'].finalActionDate || 'Not Available',
+      eb1FilingDate: categories['1st'].filingDate || 'Not Available',
+      eb1FinalActionDate: categories['1st'].finalActionDate || 'Not Available',
+      eb5FilingDate: categories['5th'].filingDate || 'Not Available',
+      eb5FinalActionDate: categories['5th'].finalActionDate || 'Not Available',
+      url
+    };
   } catch (error) {
     console.error(`Error fetching bulletin for ${month} ${year}:`, error.message);
-    return { month: `${capitalize(month)} ${year}`, date: 'Error fetching data', url: null, error: error.message };
+    return { month: `${capitalize(month)} ${year}`, date: 'Error fetching data', finalActionDate: 'Error fetching data', url: null, error: error.message };
   }
 }
 
@@ -108,6 +137,13 @@ app.get('/api/visa-bulletin', async (req, res) => {
       current: currentBulletin,
       upcoming: upcomingBulletin,
       movement: calculateMovement(currentBulletin.date, upcomingBulletin.date),
+      finalActionMovement: calculateMovement(currentBulletin.finalActionDate, upcomingBulletin.finalActionDate),
+      eb2Movement: calculateMovement(currentBulletin.eb2FilingDate, upcomingBulletin.eb2FilingDate),
+      eb2FinalActionMovement: calculateMovement(currentBulletin.eb2FinalActionDate, upcomingBulletin.eb2FinalActionDate),
+      eb1Movement: calculateMovement(currentBulletin.eb1FilingDate, upcomingBulletin.eb1FilingDate),
+      eb1FinalActionMovement: calculateMovement(currentBulletin.eb1FinalActionDate, upcomingBulletin.eb1FinalActionDate),
+      eb5Movement: calculateMovement(currentBulletin.eb5FilingDate, upcomingBulletin.eb5FilingDate),
+      eb5FinalActionMovement: calculateMovement(currentBulletin.eb5FinalActionDate, upcomingBulletin.eb5FinalActionDate),
       lastUpdated: new Date().toISOString()
     });
   } catch (error) {

@@ -1,1 +1,4 @@
 node_modules/
+google-cloud-sdk/
+.github/
+.DS_Store

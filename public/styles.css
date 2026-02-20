@@ -35,6 +35,11 @@ header h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
 .movement-backward .movement-text { color: #e74c3c; }
 .movement-none .movement-arrow { color: #95a5a6; }
 .movement-none .movement-text { color: #95a5a6; }
+.section-header { text-align: center; color: white; margin-bottom: 20px; }
+.section-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
+.section-subtitle { font-size: 0.95rem; opacity: 0.85; }
+.section-divider { height: 2px; background: rgba(255, 255, 255, 0.25); margin: 40px auto; max-width: 600px; border-radius: 1px; }
+.date-display-fa { color: #e67e22; }
 .info-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
 .info-box { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); }
 .info-box h3 { color: #667eea; margin-bottom: 12px; font-size: 1.1rem; }
@@ -47,6 +52,10 @@ header h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
 .refresh-btn:active { transform: translateY(0); }
 .refresh-icon { font-size: 1.2rem; display: inline-block; transition: transform 0.3s ease; }
 .refresh-btn:hover .refresh-icon { transform: rotate(180deg); }
+.category-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; }
+.tab-btn { padding: 10px 28px; border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.15); color: white; border-radius: 25px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; backdrop-filter: blur(5px); }
+.tab-btn:hover { background: rgba(255, 255, 255, 0.3); border-color: rgba(255, 255, 255, 0.7); }
+.tab-btn.active { background: white; color: #667eea; border-color: white; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); }
 @media (max-width: 768px) {
     header h1 { font-size: 1.8rem; }
     .subtitle { font-size: 0.95rem; }
@@ -55,4 +64,6 @@ header h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
     .movement-indicator { flex-direction: column; gap: 10px; }
     .movement-arrow { font-size: 2rem; }
     .movement-text { font-size: 1.2rem; }
+    .category-tabs { gap: 6px; }
+    .tab-btn { padding: 8px 20px; font-size: 0.9rem; }
 }

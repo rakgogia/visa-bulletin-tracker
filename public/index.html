@@ -3,15 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EB3 India Visa Bulletin Tracker</title>
+    <title>India Visa Bulletin Tracker</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>EB3 India Visa Bulletin Tracker</h1>
-            <p class="subtitle">Dates for Filing of Employment-Based Visa Applications</p>
+            <h1>India Visa Bulletin Tracker</h1>
+            <p class="subtitle">Filing Dates & Final Action Dates for Employment-Based Categories</p>
         </header>
+        <div class="category-tabs">
+            <button class="tab-btn" data-category="eb1" onclick="switchCategory('eb1')">EB1</button>
+            <button class="tab-btn" data-category="eb2" onclick="switchCategory('eb2')">EB2</button>
+            <button class="tab-btn active" data-category="eb3" onclick="switchCategory('eb3')">EB3</button>
+            <button class="tab-btn" data-category="eb5" onclick="switchCategory('eb5')">EB5</button>
+        </div>
         <div id="loading" class="loading">
             <div class="spinner"></div>
             <p>Fetching latest visa bulletin data...</p>
@@ -21,6 +27,10 @@
             <p id="errorMessage" class="error-details"></p>
         </div>
         <div id="content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">📋 Dates for Filing</h2>
+                <p class="section-subtitle" id="filingSubtitle">Priority date cutoffs for filing EB3 India visa applications</p>
+            </div>
             <div class="bulletin-cards">
                 <div class="card current-card">
                     <div class="card-header">
@@ -56,6 +66,51 @@
                             <span class="movement-text" id="movementText">No movement</span>
                         </div>
                         <div class="movement-details" id="movementDetails">Calculating movement...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="section-header">
+                <h2 class="section-title">⚖️ Final Action Date</h2>
+                <p class="section-subtitle" id="faSubtitle">Date when USCIS makes a final determination on EB3 India visa applications</p>
+            </div>
+            <div class="bulletin-cards">
+                <div class="card current-card">
+                    <div class="card-header">
+                        <h2>Current Bulletin</h2>
+                        <span class="badge badge-current">Current</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="month-label" id="faCurrentMonth">-</div>
+                        <div class="date-display date-display-fa" id="faCurrentDate">-</div>
+                        <a href="#" id="faCurrentLink" target="_blank" class="bulletin-link">View Official Bulletin →</a>
+                    </div>
+                </div>
+                <div class="card upcoming-card">
+                    <div class="card-header">
+                        <h2>Upcoming Bulletin</h2>
+                        <span class="badge badge-upcoming">Upcoming</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="month-label" id="faUpcomingMonth">-</div>
+                        <div class="date-display date-display-fa" id="faUpcomingDate">-</div>
+                        <a href="#" id="faUpcomingLink" target="_blank" class="bulletin-link">View Official Bulletin →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="movement-section">
+                <div class="card movement-card" id="faMovementCard">
+                    <div class="card-header">
+                        <h2>Movement Analysis</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="movement-indicator" id="faMovementIndicator">
+                            <span class="movement-arrow" id="faMovementArrow">→</span>
+                            <span class="movement-text" id="faMovementText">No movement</span>
+                        </div>
+                        <div class="movement-details" id="faMovementDetails">Calculating movement...</div>
                     </div>
                 </div>
             </div>
