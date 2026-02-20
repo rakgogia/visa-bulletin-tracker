@@ -2,11 +2,15 @@ const express = require('express');
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors());
-app.use(express.static('public'));
+
+const buildDir = path.join(__dirname, 'public_build');
+app.use(express.static(buildDir));
 
 const VISA_BULLETIN_BASE_URL = 'https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin';
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
@@ -14,17 +18,28 @@ const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 
 const getMonthName = (monthNum) => MONTHS[monthNum];
 const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
-function getCurrentAndUpcomingMonths() {
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  const upcomingMonth = currentMonth === 11 ? 0 : currentMonth + 1;
-  const upcomingYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+function getComparisonMonths(date) {
+  const d = date || new Date();
+  const currentMonth = d.getMonth();
+  const currentYear = d.getFullYear();
+
+  const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+  const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+
+  const makeInfo = (m, y) => ({ month: getMonthName(m), year: y, display: `${capitalize(getMonthName(m))} ${y}` });
 
   return {
-    current: { month: getMonthName(currentMonth), year: currentYear, display: `${capitalize(getMonthName(currentMonth))} ${currentYear}` },
-    upcoming: { month: getMonthName(upcomingMonth), year: upcomingYear, display: `${capitalize(getMonthName(upcomingMonth))} ${upcomingYear}` }
+    previous: makeInfo(prevMonth, prevYear),
+    current: makeInfo(currentMonth, currentYear),
+    upcoming: makeInfo(nextMonth, nextYear)
   };
+}
+
+function isBulletinAvailable(bulletin) {
+  return !bulletin.error;
 }
 
 async function fetchVisaBulletin(month, year) {
@@ -61,15 +76,13 @@ async function fetchVisaBulletin(month, year) {
       }
       if (indiaColumnIndex === -1) return;
 
+      const ROW_LABEL_MAP = { '1st': '1st', '2nd': '2nd', '3rd': '3rd' };
+
       rows.each((_rowIndex, row) => {
         const cells = $(row).find('td, th');
         const rowLabel = $(cells[0]).text().trim();
-
-        let categoryKey = null;
-        if (rowLabel === '1st') categoryKey = '1st';
-        else if (rowLabel === '2nd') categoryKey = '2nd';
-        else if (rowLabel === '3rd') categoryKey = '3rd';
-        else if (rowLabel.startsWith('5th') && rowLabel.includes('Unreserved')) categoryKey = '5th';
+        const categoryKey = ROW_LABEL_MAP[rowLabel]
+          || (rowLabel.startsWith('5th') && rowLabel.includes('Unreserved') ? '5th' : null);
 
         if (categoryKey && cells.length > indiaColumnIndex) {
           const dateValue = $(cells[indiaColumnIndex]).text().trim();
@@ -136,25 +149,45 @@ function calculateMovement(currentDate, upcomingDate) {
   return { days: 0, direction: 'no change', description: 'No movement' };
 }
 
+function buildMovements(earlier, later) {
+  return {
+    movement: calculateMovement(earlier.date, later.date),
+    finalActionMovement: calculateMovement(earlier.finalActionDate, later.finalActionDate),
+    eb1Movement: calculateMovement(earlier.eb1FilingDate, later.eb1FilingDate),
+    eb1FinalActionMovement: calculateMovement(earlier.eb1FinalActionDate, later.eb1FinalActionDate),
+    eb2Movement: calculateMovement(earlier.eb2FilingDate, later.eb2FilingDate),
+    eb2FinalActionMovement: calculateMovement(earlier.eb2FinalActionDate, later.eb2FinalActionDate),
+    eb5Movement: calculateMovement(earlier.eb5FilingDate, later.eb5FilingDate),
+    eb5FinalActionMovement: calculateMovement(earlier.eb5FinalActionDate, later.eb5FinalActionDate)
+  };
+}
+
 app.get('/api/visa-bulletin', async (req, res) => {
   try {
-    const { current, upcoming } = getCurrentAndUpcomingMonths();
+    const months = getComparisonMonths();
     const [cur, upc] = await Promise.all([
-      fetchVisaBulletin(current.month, current.year),
-      fetchVisaBulletin(upcoming.month, upcoming.year)
+      fetchVisaBulletin(months.current.month, months.current.year),
+      fetchVisaBulletin(months.upcoming.month, months.upcoming.year)
     ]);
 
+    let earlier, later, comparisonMode;
+
+    if (isBulletinAvailable(upc)) {
+      earlier = cur;
+      later = upc;
+      comparisonMode = 'current-to-upcoming';
+    } else {
+      const prev = await fetchVisaBulletin(months.previous.month, months.previous.year);
+      earlier = prev;
+      later = cur;
+      comparisonMode = 'previous-to-current';
+    }
+
     res.json({
-      current: cur,
-      upcoming: upc,
-      movement: calculateMovement(cur.date, upc.date),
-      finalActionMovement: calculateMovement(cur.finalActionDate, upc.finalActionDate),
-      eb1Movement: calculateMovement(cur.eb1FilingDate, upc.eb1FilingDate),
-      eb1FinalActionMovement: calculateMovement(cur.eb1FinalActionDate, upc.eb1FinalActionDate),
-      eb2Movement: calculateMovement(cur.eb2FilingDate, upc.eb2FilingDate),
-      eb2FinalActionMovement: calculateMovement(cur.eb2FinalActionDate, upc.eb2FinalActionDate),
-      eb5Movement: calculateMovement(cur.eb5FilingDate, upc.eb5FilingDate),
-      eb5FinalActionMovement: calculateMovement(cur.eb5FinalActionDate, upc.eb5FinalActionDate),
+      current: earlier,
+      upcoming: later,
+      comparisonMode,
+      ...buildMovements(earlier, later),
       lastUpdated: new Date().toISOString()
     });
   } catch (error) {
@@ -184,4 +217,26 @@ app.get('/api/commit-info', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Visa Bulletin Tracker running at http://localhost:${PORT}`));
+// SPA catch-all — serve React index.html for non-API routes
+const reactIndex = path.join(buildDir, 'index.html');
+if (fs.existsSync(reactIndex)) {
+  app.get('*', (_req, res) => res.sendFile(reactIndex));
+}
+
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Visa Bulletin Tracker running at http://localhost:${PORT}`));
+}
+
+module.exports = {
+  app,
+  parseDate,
+  calculateMovement,
+  getComparisonMonths,
+  isBulletinAvailable,
+  buildMovements,
+  getMonthName,
+  capitalize,
+  MONTHS,
+  MONTH_MAP,
+  NON_DATE_VALUES
+};

@@ -1,16 +1,23 @@
 {
   "name": "visa-bulletin-tracker",
   "version": "1.0.0",
-  "description": "Track EB3 India visa bulletin movements",
+  "description": "Track India employment-based visa bulletin movements",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "dev:client": "npm --prefix client run dev",
+    "build:client": "npm --prefix client run build",
+    "install:client": "npm --prefix client install",
+    "test": "jest --verbose"
   },
   "keywords": [
     "visa",
     "bulletin",
+    "eb1",
+    "eb2",
     "eb3",
+    "eb5",
     "india"
   ],
   "author": "",
@@ -22,10 +29,10 @@
     "cheerio": "1.0.0-rc.12",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "htmlparser2": "^10.1.0",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "nodemon": "^3.0.1"
   }
 }
